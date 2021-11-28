@@ -167,6 +167,7 @@ BEGIN
           n_mem_addr <= mem_addr + X"00000004";
         ELSIF btn(2) = '1' THEN
           n_mem_addr <= (OTHERS => '0');
+          n_charcounter <= 0;
         END IF;
       END IF;
 
