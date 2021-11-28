@@ -1,0 +1,2 @@
+ghdl -fexplicit --ieee=synopsys serial
+synth_ecp5 -noccu2 -nomux -nodram -json serial.json
