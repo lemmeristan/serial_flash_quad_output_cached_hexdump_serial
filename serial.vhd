@@ -81,6 +81,8 @@ ARCHITECTURE behavioural OF serial IS
   SIGNAL spi_csn, spi_clk, spi_di, spi_do, spi_wpn, spi_holdn, spi_reading : STD_LOGIC;
 
   SIGNAL spi_io : STD_LOGIC_VECTOR(3 DOWNTO 0);
+
+  SIGNAL half_clk : STD_LOGIC;
 BEGIN
 
   rst <= NOT btn(0);
@@ -89,7 +91,7 @@ BEGIN
     base_address => base_address
     ) PORT MAP(
     reset => rst,
-    clk => clk_25mhz,
+    clk => half_clk, --clk_25mhz,
 
     mem_clk => clk_25mhz,
     mem_re => mem_re,
@@ -133,9 +135,12 @@ BEGIN
       charcounter <= 0;
 
       p_btn <= '0';
-      mem_addr <= base_address;
+      mem_addr <= X"00400000"; --base_address;
+      half_clk <= '0';
 
     ELSIF rising_edge(clk_25mhz) THEN
+      half_clk <= NOT half_clk;
+
       p_btn <= btn(1);
 
       IF counter = 0 THEN
@@ -166,7 +171,7 @@ BEGIN
           n_charcounter <= 0; -- if so, start over at index 0
           n_mem_addr <= mem_addr + X"00000004";
         ELSIF btn(2) = '1' THEN
-          n_mem_addr <= (OTHERS => '0');
+          n_mem_addr <= X"00400000";
           n_charcounter <= 0;
         END IF;
       END IF;
