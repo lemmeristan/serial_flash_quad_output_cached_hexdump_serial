@@ -87,7 +87,7 @@ ARCHITECTURE behavioural OF quadflash_cache IS
         );
     END COMPONENT;
 
-    TYPE state_t IS (INIT, IDLE, FILL_CACHE);
+    TYPE state_t IS (S_RESET, INIT, IDLE, FILL_CACHE);
     SIGNAL state, n_state : state_t;
 
     CONSTANT CMD_READ_QUAD : STD_LOGIC_VECTOR(7 DOWNTO 0) := X"6B";
@@ -99,6 +99,9 @@ ARCHITECTURE behavioural OF quadflash_cache IS
 
     CONSTANT CMD_WRITE_STATUS_REG_1 : STD_LOGIC_VECTOR(7 DOWNTO 0) := X"01";
     CONSTANT CMD_WRITE_STATUS_REG_2 : STD_LOGIC_VECTOR(7 DOWNTO 0) := X"31";
+
+    CONSTANT CMD_ENABLE_RESET : STD_LOGIC_VECTOR(7 DOWNTO 0) := X"66";
+    CONSTANT CMD_RESET : STD_LOGIC_VECTOR(7 DOWNTO 0) := X"99";
 
     CONSTANT STATUS_REG_QUAD_ENABLE : STD_LOGIC_VECTOR(7 DOWNTO 0) := X"02";
 
@@ -152,6 +155,32 @@ BEGIN
 
         --led(4) <= wel;
         CASE state IS
+
+            WHEN S_RESET =>
+                n_waitcounter <= waitcounter + 1;
+                CASE waitcounter IS
+                    WHEN 0 TO 7 =>
+
+                    WHEN 8 TO 15 =>
+                        spi_sck <= clk;
+                        spi_csn <= '0';
+                        spi_di <= CMD_ENABLE_RESET(7 - (waitcounter - 8));
+
+                    WHEN 16 TO 23 =>
+
+                    WHEN 24 TO 31 =>
+                        spi_sck <= clk;
+                        spi_csn <= '0';
+                        spi_di <= CMD_ENABLE_RESET(7 - (waitcounter - 8));
+
+                    WHEN 32 TO 999 => -- wait 30 us (actually 45 us here)
+
+                    WHEN 1000 =>
+                        n_waitcounter <= 0;
+                        n_state <= INIT;
+                    WHEN OTHERS =>
+                        n_waitcounter <= 0;
+                END CASE;
 
             WHEN INIT =>
                 initializing <= '1';
@@ -230,98 +259,6 @@ BEGIN
                         IF waitcounter = 95 THEN
                             n_waitcounter <= 0;
                         END IF;
-
-                        -- IF shift_reg(1) = '1' THEN -- quad enable?
-                        --     n_waitcounter <= 0;
-                        --     n_state <= IDLE;
-                        -- ELSIF shift_reg(9) = '1' THEN -- write enable latch?
-                        --     n_waitcounter <= 48;
-                        -- END IF;
-
-                        -- WHEN 33 TO 39 =>
-                        --     --led(2) <= '1';
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-
-                        -- WHEN 40 TO 47 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= CMD_WRITE_ENABLE(7 - (waitcounter - 40));
-                        --     IF waitcounter = 47 THEN
-                        --         n_waitcounter <= 0;
-                        --     END IF;
-
-                        -- WHEN 48 TO 55 =>
-                        --     --led(3) <= '1';
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 56 TO 63 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-
-                        --     spi_di <= CMD_WRITE_STATUS_REG_1(7 - (waitcounter MOD 8));
-                        -- WHEN 64 TO 71 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 72 TO 79 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= STATUS_REG_QUAD_ENABLE(7 - (waitcounter MOD 8));
-                        --     IF waitcounter = 79 THEN
-                        --         n_waitcounter <= 0;
-                        --     END IF;
-                        -- WHEN 0 TO 7 =>
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 8 TO 15 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= CMD_WRITE_ENABLE_VOLATILE(7 - (waitcounter MOD 8));
-                        -- WHEN 16 TO 23 =>
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 24 TO 31 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= CMD_READ_STATUS_REG_1(7 - (waitcounter MOD 8));
-                        -- WHEN 32 TO 47 =>
-                        --     spi_sck <= clk;
-                        --     spi_csn <= '0';
-                        --     n_shift_reg <= shift_reg(30 DOWNTO 0) & spi_do;
-                        -- WHEN 48 =>
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-                        --     IF shift_reg(8) = '1' THEN
-                        --         n_waitcounter <= 16;
-                        --     END IF;
-                        -- WHEN 49 TO 55 =>
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 56 TO 63 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-
-                        --     spi_di <= CMD_WRITE_STATUS_REG_1(7 - (waitcounter MOD 8));
-                        -- WHEN 64 TO 71 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 72 TO 79 =>
-                        --     spi_sck <= NOT clk;
-                        --     spi_csn <= '0';
-                        --     spi_di <= STATUS_REG_QUAD_ENABLE(7 - (waitcounter MOD 8));
-                        -- WHEN 80 =>
-
-                        --     spi_sck <= '0';
-                        --     spi_di <= '0';
-                        -- WHEN 81 TO 500000 =>
-                        --     spi_di <= '0';
-                        --     spi_csn <= '1';
-                        --     spi_sck <= clk;
-                        -- WHEN 500001 =>
-                        --     n_state <= IDLE;
-                        --     n_waitcounter <= 0;
                     WHEN OTHERS =>
                         n_waitcounter <= 0;
                 END CASE;
@@ -409,7 +346,7 @@ BEGIN
             fill_count <= (OTHERS => '0');
             shift_reg <= (OTHERS => '0');
             current_address <= (OTHERS => '1');
-            state <= INIT;
+            state <= S_RESET;
             waitcounter <= 0;
             initialized <= '0';
             wel <= '0';
@@ -451,7 +388,7 @@ BEGIN
         PORT MAP(
             Data => cache_DIN,
             WrAddress => fill_count(13 DOWNTO 3), RdAddress => mem_addr(12 DOWNTO 2),
-            RdClock => mem_clk, WrClock => clk, WrClockEn => cache_WE, RdClockEn => mem_re, WE => cache_WE, Reset => reset,
+            RdClock => mem_clk, WrClock => clk, WrClockEn => cache_WE, RdClockEn => mem_re, WE => cache_WE, Reset => '0', --reset,
             Q => mem_rdata
         );
     END GENERATE lattice;
